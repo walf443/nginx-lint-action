@@ -42,4 +42,3 @@ jobs:
       - uses: ./
         with:
           files: test/valid.conf test/server-block.conf
-          context: http
