@@ -7,7 +7,7 @@ GitHub Action for [nginx-lint](https://github.com/walf443/nginx-lint) — Lint n
 ### Basic
 
 ```yaml
-- uses: walf443/nginx-lint-action@v1
+- uses: walf443/nginx-lint-action@v0
   with:
     files: nginx.conf
 ```
@@ -15,7 +15,7 @@ GitHub Action for [nginx-lint](https://github.com/walf443/nginx-lint) — Lint n
 ### Multiple files
 
 ```yaml
-- uses: walf443/nginx-lint-action@v1
+- uses: walf443/nginx-lint-action@v0
   with:
     files: nginx.conf conf.d/default.conf
 ```
@@ -23,7 +23,7 @@ GitHub Action for [nginx-lint](https://github.com/walf443/nginx-lint) — Lint n
 ### With configuration file
 
 ```yaml
-- uses: walf443/nginx-lint-action@v1
+- uses: walf443/nginx-lint-action@v0
   with:
     files: nginx.conf
     config: .nginx-lint.toml
@@ -34,7 +34,7 @@ GitHub Action for [nginx-lint](https://github.com/walf443/nginx-lint) — Lint n
 Lint a partial config file (e.g., a server block snippet):
 
 ```yaml
-- uses: walf443/nginx-lint-action@v1
+- uses: walf443/nginx-lint-action@v0
   with:
     files: conf.d/mysite.conf
     context: http,server
@@ -43,7 +43,7 @@ Lint a partial config file (e.g., a server block snippet):
 ### JSON output
 
 ```yaml
-- uses: walf443/nginx-lint-action@v1
+- uses: walf443/nginx-lint-action@v0
   with:
     files: nginx.conf
     format: json
@@ -52,7 +52,7 @@ Lint a partial config file (e.g., a server block snippet):
 ### Pin to a specific version
 
 ```yaml
-- uses: walf443/nginx-lint-action@v1
+- uses: walf443/nginx-lint-action@v0
   with:
     files: nginx.conf
     version: "0.3.0"
@@ -91,7 +91,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: walf443/nginx-lint-action@v1
+      - uses: walf443/nginx-lint-action@v0
         with:
           files: nginx.conf
 ```
@@ -133,7 +133,7 @@ jobs:
           fi
           echo "files=$FILES" >> "$GITHUB_OUTPUT"
 
-      - uses: walf443/nginx-lint-action@v1
+      - uses: walf443/nginx-lint-action@v0
         if: steps.changed.outputs.files != ''
         with:
           files: ${{ steps.changed.outputs.files }}
