@@ -41,7 +41,7 @@ runs:
         fi
 
         if [ -n "${{ inputs.config }}" ]; then
-          ARGS="${ARGS} --config /workspace/${{ inputs.config }}"
+          ARGS="${ARGS} --config ${{ github.workspace }}/${{ inputs.config }}"
         fi
 
         if [ -n "${{ inputs.context }}" ]; then
@@ -52,14 +52,14 @@ runs:
           ARGS="${ARGS} ${{ inputs.args }}"
         fi
 
-        # Build file arguments with /workspace/ prefix
+        # Build file arguments with workspace prefix
         FILES=""
         for file in ${{ inputs.files }}; do
-          FILES="${FILES} /workspace/${file}"
+          FILES="${FILES} ${{ github.workspace }}/${file}"
         done
 
         docker run --rm \
-          -v "${{ github.workspace }}:/workspace" \
+          -v "${{ github.workspace }}:${{ github.workspace }}" \
           "ghcr.io/walf443/nginx-lint:${{ inputs.version }}" \
           --no-color \
           ${ARGS} \
