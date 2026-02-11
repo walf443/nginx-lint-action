@@ -1,0 +1,45 @@
+name: Test Action
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  basic:
+    name: Basic lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          files: test/valid.conf
+
+  context:
+    name: Partial config with context
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          files: test/server-block.conf
+          context: http
+
+  json-format:
+    name: JSON output format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          files: test/valid.conf
+          format: json
+
+  multiple-files:
+    name: Multiple files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          files: test/valid.conf test/server-block.conf
+          context: http
