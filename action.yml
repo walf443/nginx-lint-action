@@ -1,0 +1,65 @@
+name: "nginx-lint"
+description: "Lint nginx configuration files using nginx-lint"
+author: "walf443"
+
+branding:
+  icon: "check-circle"
+  color: "green"
+
+inputs:
+  files:
+    description: "Path to nginx configuration file(s) (space-separated)"
+    required: true
+  version:
+    description: "Version of nginx-lint to use (Docker image tag)"
+    required: false
+    default: "latest"
+  format:
+    description: "Output format (text or json)"
+    required: false
+  config:
+    description: "Path to .nginx-lint.toml configuration file"
+    required: false
+  context:
+    description: "Parent context for partial config files (e.g., 'http,server')"
+    required: false
+  args:
+    description: "Additional CLI arguments to pass to nginx-lint"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Run nginx-lint
+      shell: bash
+      run: |
+        ARGS=""
+
+        if [ -n "${{ inputs.format }}" ]; then
+          ARGS="${ARGS} --format ${{ inputs.format }}"
+        fi
+
+        if [ -n "${{ inputs.config }}" ]; then
+          ARGS="${ARGS} --config /workspace/${{ inputs.config }}"
+        fi
+
+        if [ -n "${{ inputs.context }}" ]; then
+          ARGS="${ARGS} --context ${{ inputs.context }}"
+        fi
+
+        if [ -n "${{ inputs.args }}" ]; then
+          ARGS="${ARGS} ${{ inputs.args }}"
+        fi
+
+        # Build file arguments with /workspace/ prefix
+        FILES=""
+        for file in ${{ inputs.files }}; do
+          FILES="${FILES} /workspace/${file}"
+        done
+
+        docker run --rm \
+          -v "${{ github.workspace }}:/workspace" \
+          "ghcr.io/walf443/nginx-lint:${{ inputs.version }}" \
+          --no-color \
+          ${ARGS} \
+          ${FILES}
