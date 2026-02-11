@@ -15,8 +15,9 @@ inputs:
     required: false
     default: "latest"
   format:
-    description: "Output format (text or json)"
+    description: "Output format (github-actions or errorformat or json)"
     required: false
+    default: "github-actions"
   config:
     description: "Path to .nginx-lint.toml configuration file"
     required: false
