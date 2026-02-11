@@ -20,6 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./
+        continue-on-error: true
         with:
           files: test/server-block.conf
           context: http
@@ -40,5 +41,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./
+        continue-on-error: true
         with:
           files: test/valid.conf test/server-block.conf

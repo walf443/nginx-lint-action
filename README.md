@@ -69,7 +69,9 @@ Lint a partial config file (e.g., a server block snippet):
 | `context` | No | — | Parent context for partial config files (e.g., `http,server`) |
 | `args` | No | — | Additional CLI arguments passed to nginx-lint |
 
-## Full workflow example
+## Full workflow examples
+
+### Lint specific files
 
 ```yaml
 name: Lint nginx config
@@ -92,6 +94,49 @@ jobs:
       - uses: walf443/nginx-lint-action@v1
         with:
           files: nginx.conf
+```
+
+### Lint only changed files
+
+Only run nginx-lint on `.conf` files that were changed in a push or pull request:
+
+```yaml
+name: Lint nginx config
+
+on:
+  pull_request:
+    paths:
+      - "**.conf"
+  push:
+    paths:
+      - "**.conf"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed conf files
+        id: changed
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            FILES=$(git diff --name-only --diff-filter=ACMR \
+              ${{ github.event.pull_request.base.sha }} \
+              ${{ github.sha }} -- '*.conf' | tr '\n' ' ')
+          else
+            FILES=$(git diff --name-only --diff-filter=ACMR \
+              ${{ github.event.before }} \
+              ${{ github.sha }} -- '*.conf' | tr '\n' ' ')
+          fi
+          echo "files=$FILES" >> "$GITHUB_OUTPUT"
+
+      - uses: walf443/nginx-lint-action@v1
+        if: steps.changed.outputs.files != ''
+        with:
+          files: ${{ steps.changed.outputs.files }}
 ```
 
 ## License
