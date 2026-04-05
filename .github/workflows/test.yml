@@ -9,7 +9,7 @@ jobs:
     name: Basic lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           files: test/valid.conf
@@ -18,7 +18,7 @@ jobs:
     name: Partial config with context
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         continue-on-error: true
         with:
@@ -29,7 +29,7 @@ jobs:
     name: JSON output format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         with:
           files: test/valid.conf
@@ -39,7 +39,7 @@ jobs:
     name: Multiple files
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./
         continue-on-error: true
         with:
