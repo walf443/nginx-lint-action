@@ -1,0 +1,13 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^action\\.yml$"],
+      "matchStrings": [
+        "default:\\s*\"(?<currentValue>[\\d.]+)@(?<currentDigest>sha256:[a-f0-9]+)\"\\s*#\\s*renovate:\\s*datasource=(?<datasource>[^\\s]+)\\s+depName=(?<depName>[^\\s]+)"
+      ]
+    }
+  ]
+}
