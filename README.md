@@ -63,7 +63,7 @@ Lint a partial config file (e.g., a server block snippet):
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
 | `files` | Yes | — | Path to nginx configuration file(s), space-separated |
-| `version` | No | `latest` | nginx-lint Docker image tag |
+| `version` | No | `0.10.4@sha256:...` | nginx-lint Docker image tag (pinned with digest) |
 | `format` | No | `text` | Output format (`text` or `json`) |
 | `config` | No | — | Path to `.nginx-lint.toml` configuration file |
 | `context` | No | — | Parent context for partial config files (e.g., `http,server`) |
