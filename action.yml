@@ -27,10 +27,24 @@ inputs:
   args:
     description: "Additional CLI arguments to pass to nginx-lint"
     required: false
+  cache:
+    description: "Cache compiled WASM plugins across CI runs using actions/cache. Requires an nginx-lint version with plugin cache support (newer than 0.15.0); older versions simply ignore the cache directory."
+    required: false
+    default: "true"
 
 runs:
   using: "composite"
   steps:
+    - name: Restore WASM plugin cache
+      if: inputs.cache == 'true'
+      uses: actions/cache@v6
+      with:
+        path: ${{ runner.temp }}/nginx-lint-cache
+        key: nginx-lint-cache-${{ runner.os }}-${{ runner.arch }}-${{ inputs.version }}-${{ hashFiles('**/*.wasm') }}
+        restore-keys: |
+          nginx-lint-cache-${{ runner.os }}-${{ runner.arch }}-${{ inputs.version }}-
+          nginx-lint-cache-${{ runner.os }}-${{ runner.arch }}-
+
     - name: Run nginx-lint
       shell: bash
       run: |
@@ -58,7 +72,16 @@ runs:
           FILES="${FILES} ${{ github.workspace }}/${file}"
         done
 
+        # Persist the WASM plugin compilation cache outside the container.
+        # nginx-lint resolves its cache root to $XDG_CACHE_HOME/nginx-lint,
+        # so this works without the --cache-dir flag; versions without cache
+        # support just ignore it.
+        CACHE_DIR="${RUNNER_TEMP}/nginx-lint-cache"
+        mkdir -p "${CACHE_DIR}"
+
         docker run --rm \
+          -e XDG_CACHE_HOME=/nginx-lint-cache \
+          -v "${CACHE_DIR}:/nginx-lint-cache" \
           -v "${{ github.workspace }}:${{ github.workspace }}" \
           "ghcr.io/walf443/nginx-lint:${{ inputs.version }}" \
           --no-color \

@@ -44,3 +44,13 @@ jobs:
         continue-on-error: true
         with:
           files: test/valid.conf test/server-block.conf
+
+  no-cache:
+    name: Cache disabled
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        with:
+          files: test/valid.conf
+          cache: false
