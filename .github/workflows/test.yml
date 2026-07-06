@@ -44,3 +44,19 @@ jobs:
         continue-on-error: true
         with:
           files: test/valid.conf test/server-block.conf
+
+  no-cache:
+    name: Cache disabled
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./
+        with:
+          files: test/valid.conf
+          cache: false
+
+  # TODO: once a nginx-lint release with WASM plugin cache support ships
+  # (newer than 0.15.0), add a job that lints with a WASM plugin and asserts
+  # ${RUNNER_TEMP}/nginx-lint-cache is populated after the run — none of the
+  # current jobs can detect broken cache wiring because released versions
+  # ignore the cache directory.
