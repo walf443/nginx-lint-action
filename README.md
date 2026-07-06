@@ -80,6 +80,11 @@ Caching is enabled by default. Cache entries are keyed internally by plugin
 bytes and compiler configuration, so a restored cache is always safe: updated
 plugins recompile automatically and stale entries are just ignored.
 
+The cache is saved even when linting fails, so the compiled plugins survive
+the fix-and-rerun loop. When there is nothing to cache (no WASM plugins, or
+an nginx-lint version without cache support), no cache entry is uploaded at
+all, so the default costs nothing for workflows that don't use plugins.
+
 To disable it:
 
 ```yaml

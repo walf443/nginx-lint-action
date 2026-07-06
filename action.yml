@@ -36,11 +36,17 @@ runs:
   using: "composite"
   steps:
     - name: Restore WASM plugin cache
-      if: inputs.cache == 'true'
-      uses: actions/cache@v6
+      if: inputs.cache != 'false'
+      uses: actions/cache/restore@v6
       with:
         path: ${{ runner.temp }}/nginx-lint-cache
-        key: nginx-lint-cache-${{ runner.os }}-${{ runner.arch }}-${{ inputs.version }}-${{ hashFiles('**/*.wasm') }}
+        # The key is unique per run: an exact key hit at restore time would
+        # skip the save, so plugins compiled after the first save would never
+        # be persisted. Content addressing and pruning of individual entries
+        # happen inside the cache (keyed by plugin bytes and compiler
+        # configuration), so the newest cache is always the right one to
+        # restore and stale entries are just ignored.
+        key: nginx-lint-cache-${{ runner.os }}-${{ runner.arch }}-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
           nginx-lint-cache-${{ runner.os }}-${{ runner.arch }}-${{ inputs.version }}-
           nginx-lint-cache-${{ runner.os }}-${{ runner.arch }}-
@@ -76,10 +82,17 @@ runs:
         # nginx-lint resolves its cache root to $XDG_CACHE_HOME/nginx-lint,
         # so this works without the --cache-dir flag; versions without cache
         # support just ignore it.
+        # TODO: once the default version supports --cache-dir, pass it
+        # explicitly instead — it also overrides cache_dir in
+        # .nginx-lint.toml, which silently bypasses this mount today.
         CACHE_DIR="${RUNNER_TEMP}/nginx-lint-cache"
         mkdir -p "${CACHE_DIR}"
 
+        # Run as the host user so cache files written through the mount are
+        # not root-owned on the host (actions/cache save and self-hosted
+        # runner cleanup run as the unprivileged runner user).
         docker run --rm \
+          --user "$(id -u):$(id -g)" \
           -e XDG_CACHE_HOME=/nginx-lint-cache \
           -v "${CACHE_DIR}:/nginx-lint-cache" \
           -v "${{ github.workspace }}:${{ github.workspace }}" \
@@ -87,3 +100,23 @@ runs:
           --no-color \
           ${ARGS} \
           ${FILES}
+
+    - name: Check for compiled WASM plugins
+      id: plugin-cache
+      if: always() && inputs.cache != 'false'
+      shell: bash
+      run: |
+        # Skip the save entirely when nothing was cached (no WASM plugins,
+        # or an nginx-lint version without cache support).
+        if [ -n "$(ls -A "${RUNNER_TEMP}/nginx-lint-cache" 2>/dev/null)" ]; then
+          echo "dirty=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Save WASM plugin cache
+      # always(): for a linter, failing runs are the common case — the cold
+      # compile must survive the fix-and-rerun loop.
+      if: always() && steps.plugin-cache.outputs.dirty == 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ runner.temp }}/nginx-lint-cache
+        key: nginx-lint-cache-${{ runner.os }}-${{ runner.arch }}-${{ inputs.version }}-${{ github.run_id }}-${{ github.run_attempt }}
