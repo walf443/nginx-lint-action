@@ -13,7 +13,7 @@ inputs:
   version:
     description: "Version of nginx-lint to use (Docker image tag)"
     required: false
-    default: "0.19.0@sha256:c4583aa68f909000a522e85ffe24e7dbbafcbb44d6aaec6941224bbde680f93f" # renovate: datasource=docker depName=ghcr.io/walf443/nginx-lint
+    default: "0.19.1@sha256:d64126ffab34e69a10e541a46e9b047d3dd7e8cffddd02e1ed94fc12f5f1eeb0" # renovate: datasource=docker depName=ghcr.io/walf443/nginx-lint
   format:
     description: "Output format (github-actions or errorformat or json)"
     required: false
