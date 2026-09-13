@@ -7,9 +7,13 @@ branding:
   color: "green"
 
 inputs:
+  command:
+    description: "What to run: lint (lint nginx configuration files) or test-plugins (check that the WASM plugins in a directory work; requires nginx-lint 0.21.0 or newer)"
+    required: false
+    default: "lint"
   files:
-    description: "Path to nginx configuration file(s) (space-separated)"
-    required: true
+    description: "Path to nginx configuration file(s) (space-separated). Required when command is lint"
+    required: false
   version:
     description: "Version of nginx-lint to use (Docker image tag)"
     required: false
@@ -24,6 +28,16 @@ inputs:
   context:
     description: "Parent context for partial config files (e.g., 'http,server')"
     required: false
+  plugins:
+    description: "Directory containing WASM plugins for custom lint rules. Required when command is test-plugins"
+    required: false
+  fixtures:
+    description: "Directory of fixture cases (<case>/error/nginx.conf and/or <case>/expected/nginx.conf) to check the plugin against. test-plugins only; the plugins directory must then hold exactly one plugin"
+    required: false
+  allow-wasi-plugins:
+    description: "Allow plugins that import WASI (needed for plugins built with toolchains such as Go). Can also be set as plugins.allow_wasi_plugins in .nginx-lint.toml"
+    required: false
+    default: "false"
   args:
     description: "Additional CLI arguments to pass to nginx-lint"
     required: false
@@ -54,29 +68,63 @@ runs:
     - name: Run nginx-lint
       shell: bash
       run: |
+        # Arguments that are valid for every subcommand (global flags).
         ARGS=""
-
-        if [ -n "${{ inputs.format }}" ]; then
-          ARGS="${ARGS} --format ${{ inputs.format }}"
-        fi
 
         if [ -n "${{ inputs.config }}" ]; then
           ARGS="${ARGS} --config ${{ github.workspace }}/${{ inputs.config }}"
         fi
 
-        if [ -n "${{ inputs.context }}" ]; then
-          ARGS="${ARGS} --context ${{ inputs.context }}"
+        if [ -n "${{ inputs.plugins }}" ]; then
+          ARGS="${ARGS} --plugins ${{ github.workspace }}/${{ inputs.plugins }}"
         fi
 
-        if [ -n "${{ inputs.args }}" ]; then
-          ARGS="${ARGS} ${{ inputs.args }}"
+        if [ "${{ inputs.allow-wasi-plugins }}" = "true" ]; then
+          ARGS="${ARGS} --allow-wasi-plugins"
         fi
 
-        # Build file arguments with workspace prefix
-        FILES=""
-        for file in ${{ inputs.files }}; do
-          FILES="${FILES} ${{ github.workspace }}/${file}"
-        done
+        case "${{ inputs.command }}" in
+          lint)
+            if [ -z "${{ inputs.files }}" ]; then
+              echo "::error::The 'files' input is required when command is lint"
+              exit 1
+            fi
+
+            if [ -n "${{ inputs.format }}" ]; then
+              ARGS="${ARGS} --format ${{ inputs.format }}"
+            fi
+
+            if [ -n "${{ inputs.context }}" ]; then
+              ARGS="${ARGS} --context ${{ inputs.context }}"
+            fi
+
+            # Build file arguments with workspace prefix
+            FILES=""
+            for file in ${{ inputs.files }}; do
+              FILES="${FILES} ${{ github.workspace }}/${file}"
+            done
+
+            CMD="--no-color ${ARGS} ${{ inputs.args }} ${FILES}"
+            ;;
+          test-plugins)
+            if [ -z "${{ inputs.plugins }}" ]; then
+              echo "::error::The 'plugins' input is required when command is test-plugins"
+              exit 1
+            fi
+
+            if [ -n "${{ inputs.fixtures }}" ]; then
+              ARGS="${ARGS} --fixtures ${{ github.workspace }}/${{ inputs.fixtures }}"
+            fi
+
+            # test-plugins prints its own report, so format/context/files do
+            # not apply here.
+            CMD="test-plugins --no-color ${ARGS} ${{ inputs.args }}"
+            ;;
+          *)
+            echo "::error::Unknown command '${{ inputs.command }}' (expected lint or test-plugins)"
+            exit 1
+            ;;
+        esac
 
         # Persist the WASM plugin compilation cache outside the container.
         # nginx-lint resolves its cache root to $XDG_CACHE_HOME/nginx-lint,
@@ -91,15 +139,19 @@ runs:
         # Run as the host user so cache files written through the mount are
         # not root-owned on the host (actions/cache save and self-hosted
         # runner cleanup run as the unprivileged runner user).
+        #
+        # The working directory is the workspace so that test-plugins finds
+        # the repository's .nginx-lint.toml (it searches from the current
+        # directory, having no file to start from) and relative paths in
+        # `args` resolve against the checkout.
         docker run --rm \
           --user "$(id -u):$(id -g)" \
           -e XDG_CACHE_HOME=/nginx-lint-cache \
           -v "${CACHE_DIR}:/nginx-lint-cache" \
           -v "${{ github.workspace }}:${{ github.workspace }}" \
+          -w "${{ github.workspace }}" \
           "ghcr.io/walf443/nginx-lint:${{ inputs.version }}" \
-          --no-color \
-          ${ARGS} \
-          ${FILES}
+          ${CMD}
 
     - name: Check for compiled WASM plugins
       id: plugin-cache

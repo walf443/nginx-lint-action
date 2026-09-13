@@ -58,15 +58,67 @@ Lint a partial config file (e.g., a server block snippet):
     version: "0.3.0"
 ```
 
+### With WASM plugins
+
+```yaml
+- uses: walf443/nginx-lint-action@v1
+  with:
+    files: nginx.conf
+    plugins: nginx-lint-plugins
+```
+
+## Testing plugins
+
+If the repository develops an nginx-lint plugin, `command: test-plugins` runs
+[`nginx-lint test-plugins`](https://github.com/walf443/nginx-lint#testing-a-plugin)
+instead of linting: every plugin in the directory is checked against the
+examples in its own spec — the bad example has to be reported, the good example
+has to be clean, and the fixes have to resolve the bad example.
+
+```yaml
+- uses: walf443/nginx-lint-action@v1
+  with:
+    command: test-plugins
+    plugins: dist
+```
+
+If the plugin follows the fixture layout the SDKs document
+(`<case>/error/nginx.conf` and `<case>/expected/nginx.conf`), point at it too.
+The plugin directory must then hold exactly one plugin:
+
+```yaml
+- uses: walf443/nginx-lint-action@v1
+  with:
+    command: test-plugins
+    plugins: dist
+    fixtures: tests/fixtures
+```
+
+Plugins that import WASI (e.g. built with Go) need `allow-wasi-plugins: true`,
+or `plugins.allow_wasi_plugins = true` in the repository's `.nginx-lint.toml`,
+which is read from the workspace root.
+
+The step fails when a check fails (nginx-lint exits 1) or a plugin could not be
+loaded (exit 2). `files`, `format` and `context` are not used by
+`test-plugins`. The compiled plugin cache described below applies to
+`test-plugins` too.
+
+`command: test-plugins` requires nginx-lint 0.21.0 or newer; older images
+reject the subcommand.
+
 ## Inputs
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
-| `files` | Yes | — | Path to nginx configuration file(s), space-separated |
-| `version` | No | `0.14.0@sha256:...` | nginx-lint Docker image tag (pinned with digest) |
+| `command` | No | `lint` | `lint` to lint configuration files, or `test-plugins` to check the plugins in `plugins` |
+| `files` | For `lint` | — | Path to nginx configuration file(s), space-separated |
+| `version` | No | current release, pinned by digest | nginx-lint Docker image tag |
 | `format` | No | `github-actions` | Output format (`github-actions`, `errorformat`, or `json`) |
 | `config` | No | — | Path to `.nginx-lint.toml` configuration file |
 | `context` | No | — | Parent context for partial config files (e.g., `http,server`) |
+| `plugins` | For `test-plugins` | — | Directory containing WASM plugins for custom lint rules |
+| `fixtures` | No | — | Directory of fixture cases for `test-plugins` (requires exactly one plugin in `plugins`) |
+| `allow-wasi-plugins` | No | `false` | Allow plugins that import WASI |
 | `args` | No | — | Additional CLI arguments passed to nginx-lint |
 | `cache` | No | `true` | Cache compiled WASM plugins across CI runs using `actions/cache` |
 
